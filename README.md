@@ -16,6 +16,7 @@ conda env create -f flaskserver_py37.yml
 ## 2. Prepare for model
 - Download model : https://drive.google.com/drive/u/1/folders/1ZYvPNFrbV4m9L4FMkzNhc0YSVycbel9l
 - Create dic work_space
+
 Set up dictionary like:
 
 ```sh
@@ -25,6 +26,9 @@ work_space/
         ---> save/
             ---> model_final.pth
 ```
+
+***Note: If not have gpu*** ---> Change file in dictionary work_space/save/model_final.pth to model_cpu_final.pth 
+
 ## 3. Run Project
 ### 3.1 Flask server
 ```sh
