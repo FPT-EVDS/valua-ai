@@ -11,7 +11,7 @@ pip install -r requirements.txt
 ```
 With conda:
 ```sh
-conda env create -f environment.yml
+conda env create -f flaskserver_py37.yml
 ```
 ## 2. Prepare for model
 - Download model : https://drive.google.com/drive/u/1/folders/1ZYvPNFrbV4m9L4FMkzNhc0YSVycbel9l
