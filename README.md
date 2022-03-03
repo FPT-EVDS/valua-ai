@@ -44,3 +44,6 @@ data/facebank/
            ---> id3_2.jpg
 ```
 :"> WAIT NOT YET :))))))))))) i comment this code already 
+
+## 4. Resource 
+Link : https://github.com/TreB1eN/InsightFace_Pytorch
