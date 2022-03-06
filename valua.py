@@ -54,7 +54,7 @@ def load_model():
 
     # load model arcface
     learner = face_learner(conf, True)
-    learner.threshold = 1.54
+    learner.threshold = 1
 
     if conf.device.type == 'cpu':
         learner.load_state(conf, 'cpu_final.pth', True, True)

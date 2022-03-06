@@ -7,12 +7,14 @@ import numpy as np
 from tqdm import tqdm
 from tensorboardX import SummaryWriter
 from matplotlib import pyplot as plt
+
 plt.switch_backend('agg')
 from utils import get_time, gen_plot, hflip_batch, separate_bn_paras
 from PIL import Image
 from torchvision import transforms as trans
 import math
 import bcolz
+
 
 class face_learner(object):
     def __init__(self, conf, inference=False):
@@ -38,23 +40,24 @@ class face_learner(object):
 
             if conf.use_mobilfacenet:
                 self.optimizer = optim.SGD([
-                                    {'params': paras_wo_bn[:-1], 'weight_decay': 4e-5},
-                                    {'params': [paras_wo_bn[-1]] + [self.head.kernel], 'weight_decay': 4e-4},
-                                    {'params': paras_only_bn}
-                                ], lr = conf.lr, momentum = conf.momentum)
+                    {'params': paras_wo_bn[:-1], 'weight_decay': 4e-5},
+                    {'params': [paras_wo_bn[-1]] + [self.head.kernel], 'weight_decay': 4e-4},
+                    {'params': paras_only_bn}
+                ], lr=conf.lr, momentum=conf.momentum)
             else:
                 self.optimizer = optim.SGD([
-                                    {'params': paras_wo_bn + [self.head.kernel], 'weight_decay': 5e-4},
-                                    {'params': paras_only_bn}
-                                ], lr = conf.lr, momentum = conf.momentum)
+                    {'params': paras_wo_bn + [self.head.kernel], 'weight_decay': 5e-4},
+                    {'params': paras_only_bn}
+                ], lr=conf.lr, momentum=conf.momentum)
             print(self.optimizer)
-#             self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=40, verbose=True)
+            #             self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, patience=40, verbose=True)
 
             print('optimizers generated')
-            self.board_loss_every = len(self.loader)//100
-            self.evaluate_every = len(self.loader)//10
-            self.save_every = len(self.loader)//5
-            self.agedb_30, self.cfp_fp, self.lfw, self.agedb_30_issame, self.cfp_fp_issame, self.lfw_issame = get_val_data(self.loader.dataset.root.parent)
+            self.board_loss_every = len(self.loader) // 100
+            self.evaluate_every = len(self.loader) // 10
+            self.save_every = len(self.loader) // 5
+            self.agedb_30, self.cfp_fp, self.lfw, self.agedb_30_issame, self.cfp_fp_issame, self.lfw_issame = get_val_data(
+                self.loader.dataset.root.parent)
         else:
             self.threshold = conf.threshold
 
@@ -65,34 +68,38 @@ class face_learner(object):
             save_path = conf.model_path
         torch.save(
             self.model.state_dict(), save_path /
-            ('model_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy, self.step, extra)))
+                                     ('model_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy, self.step,
+                                                                                   extra)))
         if not model_only:
             torch.save(
                 self.head.state_dict(), save_path /
-                ('head_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy, self.step, extra)))
+                                        ('head_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy, self.step,
+                                                                                     extra)))
             torch.save(
                 self.optimizer.state_dict(), save_path /
-                ('optimizer_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy, self.step, extra)))
+                                             ('optimizer_{}_accuracy:{}_step:{}_{}.pth'.format(get_time(), accuracy,
+                                                                                               self.step, extra)))
 
     def load_state(self, conf, fixed_str, from_save_folder=False, model_only=False):
         if from_save_folder:
             save_path = conf.save_path
         else:
             save_path = conf.model_path
-        self.model.load_state_dict(torch.load(save_path/'model_{}'.format(fixed_str)))
+        self.model.load_state_dict(torch.load(save_path / 'model_{}'.format(fixed_str)))
         if not model_only:
-            self.head.load_state_dict(torch.load(save_path/'head_{}'.format(fixed_str)))
-            self.optimizer.load_state_dict(torch.load(save_path/'optimizer_{}'.format(fixed_str)))
+            self.head.load_state_dict(torch.load(save_path / 'head_{}'.format(fixed_str)))
+            self.optimizer.load_state_dict(torch.load(save_path / 'optimizer_{}'.format(fixed_str)))
 
     def board_val(self, db_name, accuracy, best_threshold, roc_curve_tensor):
         self.writer.add_scalar('{}_accuracy'.format(db_name), accuracy, self.step)
         self.writer.add_scalar('{}_best_threshold'.format(db_name), best_threshold, self.step)
         self.writer.add_image('{}_roc_curve'.format(db_name), roc_curve_tensor, self.step)
-#         self.writer.add_scalar('{}_val:true accept ratio'.format(db_name), val, self.step)
-#         self.writer.add_scalar('{}_val_std'.format(db_name), val_std, self.step)
-#         self.writer.add_scalar('{}_far:False Acceptance Ratio'.format(db_name), far, self.step)
 
-    def evaluate(self, conf, carray, issame, nrof_folds = 5, tta = False):
+    #         self.writer.add_scalar('{}_val:true accept ratio'.format(db_name), val, self.step)
+    #         self.writer.add_scalar('{}_val_std'.format(db_name), val_std, self.step)
+    #         self.writer.add_scalar('{}_far:False Acceptance Ratio'.format(db_name), far, self.step)
+
+    def evaluate(self, conf, carray, issame, nrof_folds=5, tta=False):
         self.model.eval()
         idx = 0
         embeddings = np.zeros([len(carray), conf.embedding_size])
@@ -129,7 +136,7 @@ class face_learner(object):
                 num=None):
         if not num:
             num = len(self.loader)
-        mult = (final_value / init_value)**(1 / num)
+        mult = (final_value / init_value) ** (1 / num)
         lr = init_value
         for params in self.optimizer.param_groups:
             params['lr'] = lr
@@ -151,25 +158,25 @@ class face_learner(object):
             thetas = self.head(embeddings, labels)
             loss = conf.ce_loss(thetas, labels)
 
-            #Compute the smoothed loss
+            # Compute the smoothed loss
             avg_loss = beta * avg_loss + (1 - beta) * loss.item()
             self.writer.add_scalar('avg_loss', avg_loss, batch_num)
-            smoothed_loss = avg_loss / (1 - beta**batch_num)
-            self.writer.add_scalar('smoothed_loss', smoothed_loss,batch_num)
-            #Stop if the loss is exploding
+            smoothed_loss = avg_loss / (1 - beta ** batch_num)
+            self.writer.add_scalar('smoothed_loss', smoothed_loss, batch_num)
+            # Stop if the loss is exploding
             if batch_num > 1 and smoothed_loss > bloding_scale * best_loss:
                 print('exited with best_loss at {}'.format(best_loss))
                 plt.plot(log_lrs[10:-5], losses[10:-5])
                 return log_lrs, losses
-            #Record the best loss
+            # Record the best loss
             if smoothed_loss < best_loss or batch_num == 1:
                 best_loss = smoothed_loss
-            #Store the values
+            # Store the values
             losses.append(smoothed_loss)
             log_lrs.append(math.log10(lr))
             self.writer.add_scalar('log_lr', math.log10(lr), batch_num)
-            #Do the SGD step
-            #Update the lr for the next step
+            # Do the SGD step
+            # Update the lr for the next step
 
             loss.backward()
             self.optimizer.step()
@@ -209,7 +216,8 @@ class face_learner(object):
                     running_loss = 0.
 
                 if self.step % self.evaluate_every == 0 and self.step != 0:
-                    accuracy, best_threshold, roc_curve_tensor = self.evaluate(conf, self.agedb_30, self.agedb_30_issame)
+                    accuracy, best_threshold, roc_curve_tensor = self.evaluate(conf, self.agedb_30,
+                                                                               self.agedb_30_issame)
                     self.board_val('agedb_30', accuracy, best_threshold, roc_curve_tensor)
                     accuracy, best_threshold, roc_curve_tensor = self.evaluate(conf, self.lfw, self.lfw_issame)
                     self.board_val('lfw', accuracy, best_threshold, roc_curve_tensor)
@@ -246,8 +254,11 @@ class face_learner(object):
                 embs.append(self.model(conf.test_transform(img).to(conf.device).unsqueeze(0)))
         source_embs = torch.cat(embs)
 
-        diff = source_embs.unsqueeze(-1) - target_embs.transpose(1,0).unsqueeze(0)
+        diff = source_embs.unsqueeze(-1) - target_embs.transpose(1, 0).unsqueeze(0)
         dist = torch.sum(torch.pow(diff, 2), dim=1)
         minimum, min_idx = torch.min(dist, dim=1)
-        min_idx[minimum > self.threshold] = -1 # if no match, set idx to -1
+        print(minimum)
+        print(self.threshold)
+        print(min_idx)
+        min_idx[minimum > self.threshold] = -1  # if no match, set idx to -1
         return min_idx, minimum

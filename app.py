@@ -6,6 +6,7 @@ import valua
 import numpy as np
 from werkzeug.utils import secure_filename
 import os
+import time
 
 from utils import draw_box_name
 
@@ -47,13 +48,17 @@ def embedd_folder_image():
 @app.route('/verify', methods=['GET', 'POST'])
 def verify_face():
     # get folder image and studentID
+    start = time.time()
     if request.method == 'POST' and 'image' in request.files:
         file = request.files.get("file")
         image = request.files.get("image")
         save_file(file)
         save_file(image)
+        end = time.time()
+        print("The time of execution of save program is :", end - start)
         result = verify_face(request.files.get("file"), request.files.get("image"))
-        print(result)
+        end = time.time()
+        print("The time of execution of verify program is :", end - start)
         return result and "True" or "False"
 
     # embbed folder image
@@ -120,7 +125,9 @@ def verify_face(file, check_image):
             target = torch.load(conf.data_path / "spring" / file.filename)
             results, score = learner.infer(conf, faces, target, True)
             for idx, bbox in enumerate(bboxes):
-                image = draw_box_name(bbox, '_{:.2f}'.format(score[idx]), image)
+                if score[idx] > learner.threshold:
+                    return False
+                image = draw_box_name(bbox, file.filename + '_{:.2f}'.format(score[idx]), image)
             cv2.imwrite(os.path.join(app.config['UPLOAD_PATH'], check_image.filename), image)
     return True
 
