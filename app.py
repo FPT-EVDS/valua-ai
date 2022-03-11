@@ -145,4 +145,4 @@ def save_file(file):
 if __name__ == '__main__':
     mtcnn, conf, model, learner = valua.load_model()
     # app.run(debug=True)
-    app.run()
+    app.run(host='0.0.0.0')
