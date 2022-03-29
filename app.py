@@ -6,6 +6,7 @@ import valua
 import numpy as np
 from werkzeug.utils import secure_filename
 import os
+from pathlib import Path
 import time
 
 from utils import draw_box_name
@@ -13,7 +14,7 @@ from utils import draw_box_name
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 app = Flask(__name__)
-app.config['UPLOAD_PATH'] = '/media/slyb/SlyB/1. CAPSTONE_UBUNTU/test_ai/ai/valua_ai/data/spring'
+app.config['UPLOAD_PATH'] = Path('data') / "spring"
 
 
 @app.route('/')
