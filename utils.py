@@ -275,11 +275,7 @@ def get_embedding(image, mtcnn, model, conf):
         return embedding
 
 
-def get_embbed_floder(images):
-    # load
-    global conf
-    global mtcnn
-    global model
+def get_embbed_floder(images, conf, mtcnn, model):
     embs = []
     file_name = "file" + '.pth'
     file_path = conf.facebank_path
@@ -296,8 +292,6 @@ def get_embbed_floder(images):
     if len(embs) != 0:
         embedding = torch.cat(embs).mean(0, keepdim=True)
         torch.save(embedding, conf.facebank_path / file_name)
-        if torch.cuda.is_available():
-            return embedding.numpy(), file_path, file_name
         return embedding.cpu().detach().numpy(), file_path, file_name
     else:
         return False

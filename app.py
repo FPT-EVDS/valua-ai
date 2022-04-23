@@ -31,7 +31,7 @@ def embedd_folder_image():
     global model
     # get folder image and studentID
     if request.method == 'POST' and 'image' in request.files:
-        embedding, file_path, filename = get_embbed_floder(request.files.getlist('image'))
+        embedding, file_path, filename = get_embbed_floder(request.files.getlist('image'), conf, mtcnn, model)
         try:
             return send_from_directory(path=filename, directory=file_path, as_attachment=True)
         except FileNotFoundError:
