@@ -167,3 +167,134 @@ def draw_box_name(bbox, name, frame):
                         3,
                         cv2.LINE_AA)
     return frame
+
+
+def cosine_distance(vector_x, vector_y):
+    """
+    Caculate distance vector x and vector y by cosine distance
+    Formular:
+    Args:
+        vector_x:
+        vector_y:
+
+    Returns:
+        distance from 2 vector
+    """
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    vector_x = vector_x.to(device)
+    vector_y = vector_y.to(device)
+    cos = torch.nn.CosineSimilarity(dim=1)
+    cos_similarity = cos(vector_x, vector_y)
+    cos_distance = 1.0 - cos_similarity.item()
+    return cos_distance
+
+
+def euclidean_distance(vector_x, vector_y):
+    """
+     Caculate distance vector x and vector y by euclidean distance
+    Formular:
+    Args:
+        vector_x:
+        vector_y:
+
+    Returns:
+        distance from 2 vector
+    """
+
+    return torch.sum(torch.pow(vector_x - vector_y, 2), dim=1)
+
+
+def verify_face_image(path_image1, path_image2, mtcnn, model, conf, metric="cosine"):
+    vector_x = get_embedding(path_image1, mtcnn, model, conf)
+    vector_y = get_embedding(path_image2, mtcnn, model, conf)
+    if metric == "cosine":
+        return cosine_distance(vector_x, vector_y)
+    else:
+        return euclidean_distance(vector_x, vector_y)
+
+
+def verify_face_file(file, image_verify, mtcnn, model, conf, metric="cosine"):
+    maxsize = (2000, 2000)
+
+    img = Image.open(image_verify)
+    img.thumbnail(maxsize, Image.ANTIALIAS)
+
+    try:
+        bboxes, faces = mtcnn.align_multi(img, conf.face_limit, 50)
+    except:
+        bboxes = []
+        faces = []
+    if len(bboxes) == 0:
+        # return max distance
+        return 100
+    else:
+        # get face's bounding box largest
+        # img = np.array(img)
+        bboxes = bboxes[:, :-1]
+        bboxes = bboxes.astype(int)
+        area_boxxes = (bboxes[:, 2] - bboxes[:, 0]) * (bboxes[:, 3] - bboxes[:, 1])
+        max_index = np.where(area_boxxes == np.amax(area_boxxes))
+
+        # bboxes = bboxes + [-1, -1, 1, 1]  # personal choice
+        target = torch.load(file)
+
+        vector_x = get_embedding(faces[int(max_index[0])], mtcnn, model, conf)
+
+        # # TODO: removed
+        # img = draw_box_name(bboxes[int(max_index[0])], "", img)
+        # cv2.imwrite("data/test/test.jpg", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+
+        if vector_x is not None:
+            if metric == "cosine":
+                return cosine_distance(vector_x, target)
+            else:
+                return euclidean_distance(vector_x, target)
+    return False
+
+
+def get_embedding(image, mtcnn, model, conf):
+    embs = []
+    path = image
+    # embedding
+    size = 112, 112
+    if image:
+        if isinstance(image, str):
+            image = Image.open(image)
+        if image.size != (112, 112):
+            try:
+                image = mtcnn.align(image)
+            except Exception:
+                image.thumbnail(size, Image.ANTIALIAS)
+                print(f"Failed image: {path}")
+                pass
+        with torch.no_grad():
+            # img.show()
+            mirror = trans.functional.hflip(image)
+            emb = model(conf.test_transform(image).to(conf.device).unsqueeze(0))
+            emb_mirror = model(conf.test_transform(mirror).to(conf.device).unsqueeze(0))
+            embs.append(l2_norm(emb + emb_mirror))
+    if len(embs) != 0:
+        embedding = torch.cat(embs).mean(0, keepdim=True)
+        return embedding
+
+
+def get_embbed_floder(images, conf, mtcnn, model):
+    embs = []
+    file_name = "file" + '.pth'
+    file_path = conf.facebank_path
+    # embedding
+    for file in images:
+        try:
+            img = Image.open(file)
+        except:
+            continue
+        if img.size != (112, 112):
+            img = mtcnn.align(img)
+        with torch.no_grad():
+            embs.append(model(conf.test_transform(img).to(conf.device).unsqueeze(0)))
+    if len(embs) != 0:
+        embedding = torch.cat(embs).mean(0, keepdim=True)
+        torch.save(embedding, conf.facebank_path / file_name)
+        return embedding.cpu().detach().numpy(), file_path, file_name
+    else:
+        return False

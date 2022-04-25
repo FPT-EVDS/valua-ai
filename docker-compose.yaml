@@ -1,0 +1,9 @@
+version: "3.7"
+
+services:
+  flask:
+    image: flakserver:v1
+    ports:
+      - "5000:5000"
+    command: python -c "import torch;torch.cuda.is_available()"
+    restart: unless-stopped

@@ -110,10 +110,9 @@ dependencies:
     - itsdangerous==2.0.1
     - mxnet==1.9.0
     - numpy==1.21.5
-    - opencv-python==4.5.5.62
+    - opencv-python-headless==4.5.5.62
     - pillow==6.1.0
     - protobuf==3.19.4
-    - python-graphviz==0.8.4
     - requests==2.27.1
     - scikit-build==0.12.0
     - tensorboardx==1.2
