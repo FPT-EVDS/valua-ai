@@ -104,6 +104,7 @@ if __name__ == '__main__':
     folder_path = "/media/slyb/SlyB/1. CAPSTONE_UBUNTU/data/VN-celeb/VN-celeb/"
     test_path = "/home/slyb/Desktop/withface/"
     test_VN_path = "/media/slyb/SlyB/1. CAPSTONE_UBUNTU/data/VN-celeb/test/"
+    official_VN_path = "/media/slyb/SlyB/1. CAPSTONE_UBUNTU/data/VN-celeb/official/"
     deepface_test_path = "/media/slyb/SlyB/1. CAPSTONE_UBUNTU/data/deepface_data_Test/"
     df = prepare_data(test_VN_path)
     instances = df[["file_x", "file_y"]].values.tolist()
@@ -130,18 +131,18 @@ if __name__ == '__main__':
     for pair in instances:
         result_cosine = verify_face_image(pair[0], pair[1], mtcnn, learner.model, conf, "cosine")
         result_euclidean = verify_face_image(pair[0], pair[1], mtcnn, learner.model, conf, "euclidean")
-        print(f"Result cosine: {pair} : {result_cosine}")
-        print(f"Result_euclidean: {pair} : {result_euclidean}")
+        # print(f"Result cosine: {pair} : {result_cosine}")
         cosine.append(round(result_cosine, 4))
-        eucliden.append(np.round(result_euclidean.cpu().numpy(), 4))
+        eucliden.append(np.round(result_euclidean.cpu().numpy()[0], 4))
 
     # distance_cos = []
     # distance_eucli = []
 
     df["distance_cosine"] = cosine
     df["distance_euclidean"] = eucliden
+    df.to_csv("data/arcface/threshold_final2.csv", index=False)
 
-    df = pd.read_csv('data/arcface/threshold_final.csv')
+    df = pd.read_csv('data/arcface/threshold_final2.csv')
 
     tp_mean = round(df[df.decision == "Yes"].mean().values[0], 4)
     tp_std = round(df[df.decision == "Yes"].std().values[0], 4)
@@ -156,12 +157,19 @@ if __name__ == '__main__':
     df[df.decision == "Yes"].distance_cosine.plot.kde()
     df[df.decision == "No"].distance_cosine.plot.kde()
 
-    plt.savefig("data/test/mygraph_1.png")
+    plt.savefig("data/test/mygraph_1_cosine.png")
+
+    plt.clf()
+
+    df[df.decision == "Yes"].distance_euclidean.plot.kde()
+    df[df.decision == "No"].distance_euclidean.plot.kde()
+
+    plt.savefig("data/test/mygraph_2_euclidean.png")
 
     # df.to_csv("data/arcface/threshold_pivot_1.csv", index=False)
 
     "Evaluate model"
-    threshold = 0.84
+    threshold = 0.74
     df["prediction"] = "No"
     idx = df[df.distance_cosine <= threshold].index
     df.loc[idx, 'prediction'] = 'Yes'
@@ -179,4 +187,4 @@ if __name__ == '__main__':
     print(f"Accuracy: {accuracy}")
     print(f"F1: {f1}")
 
-    df.to_csv("data/arcface/threshold_final.csv", index=False)
+    df.to_csv("data/arcface/threshold_final2.csv", index=False)

@@ -225,10 +225,11 @@ def verify_face_file(file, image_verify, mtcnn, model, conf, metric="cosine"):
         bboxes = []
         faces = []
     if len(bboxes) == 0:
-        return False
+        # return max distance
+        return 100
     else:
         # get face's bounding box largest
-        img = np.array(img)
+        # img = np.array(img)
         bboxes = bboxes[:, :-1]
         bboxes = bboxes.astype(int)
         area_boxxes = (bboxes[:, 2] - bboxes[:, 0]) * (bboxes[:, 3] - bboxes[:, 1])
@@ -239,9 +240,9 @@ def verify_face_file(file, image_verify, mtcnn, model, conf, metric="cosine"):
 
         vector_x = get_embedding(faces[int(max_index[0])], mtcnn, model, conf)
 
-        # TODO: removed
-        img = draw_box_name(bboxes[int(max_index[0])], str(cosine_distance(vector_x, target)), img)
-        cv2.imwrite("data/test/test.jpg", img)
+        # # TODO: removed
+        # img = draw_box_name(bboxes[int(max_index[0])], "", img)
+        # cv2.imwrite("data/test/test.jpg", cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
 
         if vector_x is not None:
             if metric == "cosine":
@@ -253,6 +254,7 @@ def verify_face_file(file, image_verify, mtcnn, model, conf, metric="cosine"):
 
 def get_embedding(image, mtcnn, model, conf):
     embs = []
+    path = image
     # embedding
     size = 112, 112
     if image:
@@ -263,6 +265,7 @@ def get_embedding(image, mtcnn, model, conf):
                 image = mtcnn.align(image)
             except Exception:
                 image.thumbnail(size, Image.ANTIALIAS)
+                print(f"Failed image: {path}")
                 pass
         with torch.no_grad():
             # img.show()
